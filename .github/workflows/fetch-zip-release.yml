@@ -1,0 +1,77 @@
+name: fetch-zip-release
+
+on:
+  workflow_dispatch:
+
+env:
+  slint_latest_tag: "0.0.0"
+  slint_org: "slint-ui"
+  slint_docs_master_repo: "www-releases"
+  slint_docs_folder_path: "releases/${slint_latest_tag}/docs"
+  slint_target_folder_name: "slintOfflineDocs"
+  ZIP_FILE: ""  # Zip file name
+  TARGET_FOLDER: ""  # Target folder in workflow workspace
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Set up Git repository
+        uses: actions/checkout@v4
+#--------------------------------------------------------------------
+      - name: Clone Remote Repository
+        run: git clone ${slint_org}/${slint_docs_master_repo} 
+#--------------------------------------------------------------------
+      #checkout remote target repo for latest release tag
+      - name: Fetch Latest Release Tag From Remote Repo
+        id: release_tag
+        run: |
+          REPO_NAME="$slint_master_repo"     # da remote repo with owner/repo format
+          TAG=$(curl -s "https://api.github.com/repos/$REPO_NAME/releases/latest" | jq -r .tag_name)
+          echo "Latest release tag (tag var ): $TAG"
+          echo "latest_tag=$TAG" >> $GITHUB_STATE
+          temp=$TAG
+          echo "slint_latest_tag=$TAG" >> $GITHUB_ENV  # Write updated value to GitHub environment file
+#--------------------------------------------------------------------
+      - name: Create Target Folder
+        run: |
+          TARGET="${{env.TARGET_FOLDER}}_${{env.slint_latest_tag}}"
+          mkdir -p $TARGET/
+          temp=$TARGET
+          echo "TARGET_FOLDER=$temp" >> $GITHUB_ENV  # Write updated value to GitHub environment file
+#--------------------------------------------------------------------
+      - name: Copy Folder Contents To Target Folder
+        run: |
+          version=${slint_latest_tag} # removing the 'v' letter from the tag
+          version=${version//v}
+          cp -r -v ${slint_docs_master_repo}/${slint_docs_folder_path}/* ${{env.TARGET_FOLDER}}/
+#--------------------------------------------------------------------
+      - name: Zip the target folder test 
+        run: |
+          ZIP_FILE="${TARGET_FOLDER}.zip" # set zip file name
+          cd ${{env.TARGET_FOLDER}} 
+          zip -r ../$TARGET_FOLDER.zip .  # zip the contents of TARGET_FOLDER without including the parent folder 
+          temp=${ZIP_FILE}
+          echo "ZIP_FILE=$temp" >> $GITHUB_ENV  # Write updated value to GitHub environment file
+#--------------------------------------------------------------------
+        # upload the zip file to the workflow
+      - name: Upload-artifact
+        run:
+      - uses: actions/upload-artifact@v4
+        with:
+          name: $ZIP_FILE
+          path: ${{ github.workspace }}
+          if-no-files-found: error
+#--------------------------------------------------------------------
+        # create a release using the latest tag and include the uploaded artifact as an asset 
+      - name: Create a Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{env.slint_latest_tag}}
+          files: ${{ github.workspace }}/${{env.ZIP_FILE}}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+
+

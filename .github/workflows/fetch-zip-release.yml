@@ -10,7 +10,7 @@ env:
   slint_docs_folder_path: "releases/${slint_latest_tag}/docs"
   slint_target_folder_name: "slintOfflineDocs"
   ZIP_FILE: ""  # Zip file name
-  TARGET_FOLDER: ""  # Target folder in workflow workspace
+  TARGET_FOLDER: "${slint_target_folder_name}"  # Target folder in workflow workspace
 
 jobs:
   build:

@@ -6,6 +6,7 @@ on:
 env:
   slint_latest_tag: "0.0.0"
   slint_org: "slint-ui"
+  slint_master_repo: "slint-ui/slint"
   slint_docs_master_repo: "www-releases"
   slint_docs_folder_path: "releases/${slint_latest_tag}/docs"
   slint_target_folder_name: "slintOfflineDocs"

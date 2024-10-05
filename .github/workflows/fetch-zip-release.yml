@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v4
 #--------------------------------------------------------------------
       - name: Clone Remote Repository
-        run: git clone ${slint_org}/${slint_docs_master_repo} 
+        run: git clone github.com/${slint_org}/${slint_docs_master_repo} 
 #--------------------------------------------------------------------
       #checkout remote target repo for latest release tag
       - name: Fetch Latest Release Tag From Remote Repo

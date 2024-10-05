@@ -39,13 +39,14 @@ jobs:
           mkdir -p $TARGET/
           temp=$TARGET
           echo "TARGET_FOLDER=$temp" >> $GITHUB_ENV  # Write updated value to GitHub environment file
-#--------------------------------------------------------------------
+#---------------------------------------------------------------------------------
       - name: Copy Folder Contents To Target Folder
         run: |
           version=${slint_latest_tag} # removing the 'v' letter from the tag
           version=${version//v}
+          slint_docs_folder_path="releases/${version}/docs"
           cp -r -v ${slint_docs_master_repo}/${slint_docs_folder_path}/* ${{env.TARGET_FOLDER}}/
-#--------------------------------------------------------------------
+#---------------------------------------------------------------------------------
       - name: Zip the target folder test 
         run: |
           ZIP_FILE="${TARGET_FOLDER}.zip" # set zip file name

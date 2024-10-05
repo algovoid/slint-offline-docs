@@ -56,8 +56,7 @@ jobs:
 #--------------------------------------------------------------------
         # upload the zip file to the workflow
       - name: Upload-artifact
-        run:
-      - uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4
         with:
           name: $ZIP_FILE
           path: ${{ github.workspace }}

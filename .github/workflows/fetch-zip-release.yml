@@ -23,7 +23,7 @@ jobs:
       - name: Checkout current repo
         uses: actions/checkout@v4
 
-      #--------------------------------------------------------------------
+#--------------------------------------------------------------------
       - name: Determine release tag
         id: get_tag
         run: |
@@ -39,7 +39,7 @@ jobs:
 
           # Export tag to env
           echo "SLINT_TAG=$TAG" >> $GITHUB_ENV
-      #--------------------------------------------------------------------
+#--------------------------------------------------------------------
       - name: Check if release already exists
         id: check_release
         env:
@@ -54,32 +54,66 @@ jobs:
                         | jq -r '.id // empty')
 
           if [ -n "$exists" ]; then
-            echo "Release with tag $TAG already exists."
+            echo "Release with tag $TAG already exists. Exiting."
             echo "exists=true" >> $GITHUB_OUTPUT
+            exit 0
           else
-            echo "No existing release found for $TAG."
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
-      #--------------------------------------------------------------------
-      - name: Stop message if release already exists
+#--------------------------------------------------------------------
+      - name: Stop if release already exists
         if: steps.check_release.outputs.exists == 'true'
         run: |
           echo "Stopping workflow — release already published."
-      #--------------------------------------------------------------------
+          exit 0
+#--------------------------------------------------------------------
       - name: Create target folder
         if: steps.check_release.outputs.exists != 'true'
         run: |
           TARGET="${TARGET_FOLDER_BASE}_${SLINT_TAG}"
           mkdir -p "$TARGET"
           echo "TARGET_FOLDER=$TARGET" >> $GITHUB_ENV
-      #--------------------------------------------------------------------
+#--------------------------------------------------------------------
       - name: Recursively download folder using GitHub API
         if: steps.check_release.outputs.exists != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # (same recursive download code here)
-      #--------------------------------------------------------------------
+          owner="${SLINT_ORG}"
+          repo="${SLINT_DOCS_REPO}"
+          version="${SLINT_TAG//v/}"
+          base_path="releases/${version}/docs"
+          target_dir="${TARGET_FOLDER}"
+
+          echo "Fetching all files recursively from: $owner/$repo/$base_path"
+
+          fetch_folder() {
+            local path=$1
+            local out_dir=$2
+            mkdir -p "$out_dir"
+
+            contents=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+                             -H "Accept: application/vnd.github.v3+json" \
+                             "https://api.github.com/repos/$owner/$repo/contents/$path")
+
+            echo "$contents" | jq -c '.[]' | while read -r item; do
+              type=$(echo "$item" | jq -r '.type')
+              name=$(echo "$item" | jq -r '.name')
+              download_url=$(echo "$item" | jq -r '.download_url')
+              new_path=$(echo "$item" | jq -r '.path')
+
+              if [ "$type" = "file" ]; then
+                echo "Downloading $new_path ..."
+                curl -s -L -o "$out_dir/$name" "$download_url"
+              elif [ "$type" = "dir" ]; then
+                echo "Entering subfolder: $new_path"
+                fetch_folder "$new_path" "$out_dir/$name"
+              fi
+            done
+          }
+
+          fetch_folder "$base_path" "$target_dir"
+#--------------------------------------------------------------------
       - name: Zip the target folder
         if: steps.check_release.outputs.exists != 'true'
         run: |
@@ -87,7 +121,7 @@ jobs:
           cd "${TARGET_FOLDER}"
           zip -r "../${ZIP_FILE}" .
           echo "ZIP_FILE=$ZIP_FILE" >> $GITHUB_ENV
-      #--------------------------------------------------------------------
+#--------------------------------------------------------------------
       - name: Upload artifact
         if: steps.check_release.outputs.exists != 'true'
         uses: actions/upload-artifact@v4
@@ -95,7 +129,7 @@ jobs:
           name: ${{ env.ZIP_FILE }}
           path: ${{ github.workspace }}/${{ env.ZIP_FILE }}
           if-no-files-found: error
-      #--------------------------------------------------------------------
+#--------------------------------------------------------------------
       - name: Create GitHub Release
         if: steps.check_release.outputs.exists != 'true'
         uses: softprops/action-gh-release@v2

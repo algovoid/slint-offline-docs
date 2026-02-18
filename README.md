@@ -1,6 +1,6 @@
 # slint-offline-docs
 # why tho ?
-having an unstable internet connection , downloading the whole releases repo just to get to few megabytes of docs is not feasable 
+downloading the whole releases repo just to get to few megabytes of docs is not efficient.
 
 # Disclaimer
 
